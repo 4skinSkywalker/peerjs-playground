@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Peer 1</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+    <h2>Peer 1</h2>
+
+    <button onclick="connect()">Connect to Peer 2</button>
+
+    <input type="text" id="message" placeholder="Send a message">
+    <button onclick="sendMessage()">Send</button>
+    <div id="messages"></div>
+
+    <script>
+        let conn = null;
+
+        function sendMessage() {
+            const message = document.getElementById('message').value;
+            conn.send(message);
+            displayMessage('Sent: ' + message);
+        }
+
+        function displayMessage(message) {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += `<p>${message}</p>`;
+        }
+
+        const peer = new Peer('peer1', { host: 'localhost', port: 9000, path: '/' });
+
+        function connect() {
+            conn = peer.connect('peer2');
+            conn.on('open', function() {
+                console.log('Connection to Peer 2 established!');
+            });
+        }
+
+        peer.on('open', function(id) {
+            console.log('My peer ID is: ' + id);
+        });
+
+        peer.on('connection', function(_conn) {
+            _conn.on('data', function(data){
+                displayMessage('Received: ' + data);
+            });
+            _conn.on('open', () => {
+                console.log('Connection fully established and data channel is open');
+                if (!conn) {
+                    connect();
+                }
+            });
+            _conn.on('close', () => {
+                console.log('Connection closed');
+                if (conn) {
+                    conn.close()
+                }
+            });
+        });
+    </script>
+</body>
+</html>

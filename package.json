@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "peer": "node ./node_modules/peer/dist/bin/peerjs --port 9000"
+  },
+  "dependencies": {
+    "peer": "^1.0.2"
+  }
+}
