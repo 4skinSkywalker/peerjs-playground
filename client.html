@@ -37,69 +37,49 @@
             return (window.location.search.match(/uid=([^&]+)/) || [])[1];
         }
 
-        function reciprocateConnection() {
-            peer.on("connection", function(_conn) {
-                _conn.on("data", function(data){
-                    displayMessage("Received: " + data);
-                });
-                _conn.on("open", () => {
-                    console.log("Connection fully established and data channel is open");
-                    if (!conn) {
-                        connectOpponent();
-                    }
-                });
-                _conn.on("close", () => {
-                    console.log("Connection closed");
-                    if (conn) {
-                        conn.close()
-                    }
-                });
-            });
-        }
-
         function getOpponentId(playerId) {
             const [ uid, playerNumber ] = [ playerId.slice(0, -1), playerId.slice(-1) ];
             return `${uid}${playerNumber === "1" ? "2" : "1"}`;
         }
 
-        function connectOpponent(callback) {
-            const opponentId = getOpponentId(playerId);
-            conn = peer.connect(opponentId);
-            conn.on("open", () => {
-                console.log(`Connection to ${opponentId} established!`);
-                if (callback) {
-                    callback();
-                }
+        function setShareLink(opponentId) {
+            const shareLink = document.getElementById("share-link");
+            shareLink.innerHTML = `<a href="?uid=${opponentId}" target="_blank">Share this link with your friend</a>`;
+        }
+
+        function gotConnection(conn) {
+            conn.on("data", function(data){
+                displayMessage("Received: " + data);
+            });            
+            conn.on("close", () => {
+                console.log("Connection closed.");
+                console.log("Re-establishing connection...");
+                establishConnection();
             });
         }
 
-        function connect() {
-            peer = new Peer(playerId);
-            peer.on("open", id => console.log("My peer ID is: " + id));
-            reciprocateConnection();
-
+        function establishConnection() {
             let connected = false;
             const timer = setInterval(() => {
                 if (connected) {
-                    clearInterval(timer);
-                    return;
+                    return clearInterval(timer);
                 }
-                connectOpponent(() => connected = true);
+                
+                const opponentId = getOpponentId(getPageUid());
+                conn = peer.connect(opponentId);
+                conn.on("open", () => {
+                    console.log(`Connection to ${opponentId} established!`);
+                    gotConnection(conn);
+                    connected = true;
+                });
             }, 3000);
         }
 
-        function setShareLink(uid) {
-            const shareLink = document.getElementById("share-link");
-            shareLink.innerHTML = `<a href="?uid=${uid}">Share this link with your friend</a>`;
-        }
-
         function init() {
-            playerId = getPageUid();
-            connect(playerId);
-
-            // const uid = getUid();
-            // setShareLink(`${uid}2`);
-            // connect(`${uid}1`);
+            peer = new Peer(getPageUid());
+            peer.on("connection", gotConnection);
+            establishConnection();
+            setShareLink(getOpponentId(getPageUid()));
         }
         init();
     </script>
